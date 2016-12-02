@@ -25,14 +25,16 @@ type AdjacentPositionServers struct {
 
 func newPositionServer(xMinBound int, xMaxBound int, yMinBound int, yMaxBound int, color string) *PositionServer {
 	return &PositionServer{
-		xMinBound:           xMinBound,
-		xMaxBound:           xMaxBound,
-		yMinBound:           yMinBound,
-		yMaxBound:           yMaxBound,
-		color:               color,
-		entities:            []*Entity{},
+		xMinBound: xMinBound,
+		xMaxBound: xMaxBound,
+		yMinBound: yMinBound,
+		yMaxBound: yMaxBound,
+		color:     color,
+		entities:  []*Entity{},
+		//buffered
 		PassedEntityChannel: make(chan Entity),
-		NewEntityChannel:    make(chan int),
+		//not buffered
+		NewEntityChannel: make(chan int),
 		//AdjacentPS:        AdjacentPositionServers{}
 	}
 }
@@ -63,19 +65,37 @@ func (ps *PositionServer) addEntity(Entity) {
 func (ps *PositionServer) tick() {
 	ps.moveEntities()
 	ps.removeOutOfBoundsEntities()
-	//lockstep
+	/*
+		lockstep with supervisor
+
+		OR
+
+		send a outOfBoundsSent message to each adjacent posServers and wait for their
+		outOfBoundsSent message before continuing
+	*/
 	ps.processPassedEntityChan()
 	ps.processNewEntityChan()
 	//send metrics
+	//render
 	//lockstep
 }
 
 func (ps *PositionServer) processNewEntityChan() {
-
+	iNewEntities := <-ps.NewEntityChannel
+	for i := iNewEntities; i > 0; i-- {
+		ps.createNewEntity()
+	}
 }
 
 func (ps *PositionServer) processPassedEntityChan() {
-
+	for {
+		select {
+		case entity := <-ps.PassedEntityChannel:
+			ps.addEntity(entity)
+		default:
+			break
+		}
+	}
 }
 
 func (ps *PositionServer) removeOutOfBoundsEntities() {

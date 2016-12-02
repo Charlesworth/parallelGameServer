@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"math/rand"
 	"testing"
 	"time"
@@ -12,29 +11,28 @@ func TestPositionServer_setup(t *testing.T) {
 	rand.Seed(time.Now().UTC().UnixNano())
 }
 
-func TestPositionServer_tick(t *testing.T) {
-	t.Error("remove this test")
-	rand.Seed(time.Now().UTC().UnixNano())
-
+func TestPositionServer_removeOutOfBoundsEntities(t *testing.T) {
 	testPS := newPositionServer(0, 10, 0, 10, "")
-	testPS.createNewEntity()
-	testPS.createNewEntity()
-	testPS.createNewEntity()
 
-	for i := 11; i > 0; i-- {
-		testPS.tick()
-		for i, a := range testPS.entities {
-			fmt.Println(i, *a)
-		}
+	inBoundsEntity := Entity{
+		xPos:      5,
+		yPos:      5,
+		direction: 0,
 	}
 
-	if len(testPS.entities) != 0 {
+	outOfBoundsEntity := Entity{
+		xPos:      12,
+		yPos:      12,
+		direction: 0,
+	}
+
+	testPS.entities = append(testPS.entities, &inBoundsEntity)
+	testPS.entities = append(testPS.entities, &outOfBoundsEntity)
+
+	testPS.removeOutOfBoundsEntities()
+	if len(testPS.entities) != 1 {
 		t.Error()
 	}
-}
-
-func TestPositionServer_removeOutOfBoundsEntities(t *testing.T) {
-	t.Error("implement me")
 }
 
 func TestPositionServer_entitiesInBounds(t *testing.T) {
