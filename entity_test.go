@@ -47,4 +47,14 @@ func TestEnitiy_withinBounds(t *testing.T) {
 	if testEntity.withinBounds(10, 20, 10, 20) {
 		t.Error()
 	}
+
+	negativeTestEntity := Entity{
+		xPos:      -5,
+		yPos:      -5,
+		direction: 0,
+	}
+
+	if negativeTestEntity.withinBounds(0, 10, 0, 10) {
+		t.Error()
+	}
 }

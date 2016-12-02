@@ -1,9 +1,6 @@
 package main
 
-import (
-	"log"
-	"math/rand"
-)
+import "math/rand"
 
 type PositionServer struct {
 	xMinBound           int
@@ -64,19 +61,40 @@ func (ps *PositionServer) addEntity(Entity) {
 }
 
 func (ps *PositionServer) tick() {
+	ps.moveEntities()
+	ps.removeOutOfBoundsEntities()
+	//lockstep
+	ps.processPassedEntityChan()
+	ps.processNewEntityChan()
+	//send metrics
+	//lockstep
+}
+
+func (ps *PositionServer) processNewEntityChan() {
+
+}
+
+func (ps *PositionServer) processPassedEntityChan() {
+
+}
+
+func (ps *PositionServer) removeOutOfBoundsEntities() {
 	for i := len(ps.entities) - 1; i >= 0; i-- {
 		entity := ps.entities[i]
-		entity.move()
 		if !entity.withinBounds(ps.xMinBound, ps.xMaxBound, ps.yMinBound, ps.yMaxBound) {
-			log.Println("outOfBounds")
-			//move entity here
-			// outOfBoundEntities <- *entity
+			//TODO: move entity here
 			if i != len(ps.entities)-1 {
 				ps.entities = append(ps.entities[:i], ps.entities[i+1:]...)
 			} else {
 				ps.entities = ps.entities[:i]
 			}
 		}
+	}
+}
+
+func (ps *PositionServer) moveEntities() {
+	for _, entity := range ps.entities {
+		entity.move()
 	}
 }
 
