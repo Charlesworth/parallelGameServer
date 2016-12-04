@@ -32,9 +32,9 @@ func newPositionServer(xMinBound int, xMaxBound int, yMinBound int, yMaxBound in
 		color:     color,
 		entities:  []*Entity{},
 		//buffered
-		PassedEntityChannel: make(chan Entity),
-		//not buffered
-		NewEntityChannel: make(chan int),
+		PassedEntityChannel: make(chan Entity, passedChanBufSize),
+		//buffered, length of 1 (basically non blocking channel)
+		NewEntityChannel: make(chan int, 1),
 		//AdjacentPS:        AdjacentPositionServers{}
 	}
 }
@@ -93,7 +93,7 @@ func (ps *PositionServer) processPassedEntityChan() {
 		case entity := <-ps.PassedEntityChannel:
 			ps.addEntity(entity)
 		default:
-			break
+			return
 		}
 	}
 }

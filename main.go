@@ -6,11 +6,11 @@ import (
 	"time"
 )
 
-var bufferSize = 100
+var passedChanBufSize = 10
 var outOfBoundEntities chan (Entity)
 
 func init() {
-	outOfBoundEntities = make(chan Entity, bufferSize)
+	outOfBoundEntities = make(chan Entity, passedChanBufSize)
 }
 
 type PositionServerSupervisor struct {

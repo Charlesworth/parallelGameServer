@@ -11,6 +11,30 @@ func TestPositionServer_setup(t *testing.T) {
 	rand.Seed(time.Now().UTC().UnixNano())
 }
 
+func TestPositionServer_processNewEntityChannel(t *testing.T) {
+	testPS := newPositionServer(0, 10, 0, 10, "")
+	testPS.NewEntityChannel <- 2
+	testPS.processNewEntityChan()
+
+	if len(testPS.entities) != 2 {
+		t.Error()
+	}
+}
+
+func TestPositionServer_processPassedEntityChannel(t *testing.T) {
+	testPS := newPositionServer(0, 10, 0, 10, "")
+	testPS.PassedEntityChannel <- Entity{
+		xPos:      5,
+		yPos:      5,
+		direction: 0,
+	}
+	testPS.processPassedEntityChan()
+
+	if len(testPS.entities) != 1 {
+		t.Error()
+	}
+}
+
 func TestPositionServer_removeOutOfBoundsEntities(t *testing.T) {
 	testPS := newPositionServer(0, 10, 0, 10, "")
 
