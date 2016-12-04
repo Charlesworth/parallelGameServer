@@ -21,19 +21,23 @@ func (pss *PositionServerSupervisor) relocateOutOfBoundsEntities() {
 }
 
 func (pss *PositionServerSupervisor) initServers(numberOfPositionServers int, sideLengthPerServer int, startingEntitiesPerServer int) error {
+	//check number of servers is at least 4
 	if numberOfPositionServers < 4 {
 		return errors.New("PositionServerSupervisor.initServers() numberOfPositionServers requires a minimum of 4")
 	}
 
+	//check the the square root of numberOfPositionServers is a whole number
 	squareRootFloat := math.Sqrt(float64(25))
 	if math.Trunc(squareRootFloat) != squareRootFloat {
 		return errors.New("PositionServerSupervisor.initServers() numberOfPositionServers must be a square of a whole number")
 	}
 
+	//check length of sides it at least 10
 	if sideLengthPerServer < 10 {
 		return errors.New("PositionServerSupervisor.initServers() sideLengthPerServer must be 10 or more")
 	}
 
+	//check that starting entities is at least 1
 	if startingEntitiesPerServer < 1 {
 		return errors.New("PositionServerSupervisor.initServers() startingEntitiesPerServer must be 1 or more")
 	}
@@ -48,6 +52,12 @@ func (pss *PositionServerSupervisor) initServers(numberOfPositionServers int, si
 	   pass each server its adjacent servers' PassedEntityChannel
 	*/
 
+	return nil
+}
+
+func (pss *PositionServerSupervisor) referenceAdjacentPassedEntityChannels(serverAdjacency serverAdjacency) error {
+	//pss.positionServers[serverAdjacency.serverNumber].
+	//pss.positionServers[serverAdjacency.serverNumber]
 	return nil
 }
 

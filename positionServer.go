@@ -11,17 +11,15 @@ type PositionServer struct {
 	entities            []*Entity
 	PassedEntityChannel chan (Entity)
 	NewEntityChannel    chan (int)
-	//AdjacentPS        AdjacentPositionServers
+	AdjacentPS          AdjacentPositionServers
 }
 
-/*
 type AdjacentPositionServers struct {
-  left    chan(Entity)
-  right   chan(Entity)
-  top     chan(Entity)
-  bottom  chan(Entity)
+	leftSent  chan (bool)
+	rightSent chan (bool)
+	aboveSent chan (bool)
+	belowSent chan (bool)
 }
-*/
 
 func newPositionServer(xMinBound int, xMaxBound int, yMinBound int, yMaxBound int, color string) *PositionServer {
 	return &PositionServer{
@@ -35,7 +33,12 @@ func newPositionServer(xMinBound int, xMaxBound int, yMinBound int, yMaxBound in
 		PassedEntityChannel: make(chan Entity, passedChanBufSize),
 		//buffered, length of 1 (basically non blocking channel)
 		NewEntityChannel: make(chan int, 1),
-		//AdjacentPS:        AdjacentPositionServers{}
+		AdjacentPS: AdjacentPositionServers{
+			leftSent:  make(chan bool),
+			rightSent: make(chan bool),
+			aboveSent: make(chan bool),
+			belowSent: make(chan bool),
+		},
 	}
 }
 
