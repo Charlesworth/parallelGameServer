@@ -3,22 +3,27 @@ package main
 import "math/rand"
 
 type PositionServer struct {
-	xMinBound           int
-	xMaxBound           int
-	yMinBound           int
-	yMaxBound           int
-	color               string
-	entities            []*Entity
-	PassedEntityChannel chan (Entity)
-	NewEntityChannel    chan (int)
-	AdjacentPS          AdjacentPositionServers
+	xMinBound              int
+	xMaxBound              int
+	yMinBound              int
+	yMaxBound              int
+	color                  string
+	entities               []*Entity
+	NewEntityChannel       chan (int)
+	PassedEntityChannel    chan (Entity)
+	PassedEntConfirmations chan (bool)
+	AdjacentPassChannels   AdjacentPassedEntChannels
 }
 
-type AdjacentPositionServers struct {
-	leftSent  chan (bool)
-	rightSent chan (bool)
-	aboveSent chan (bool)
-	belowSent chan (bool)
+type AdjacentPassedEntChannels struct {
+	leftPEChan   chan (Entity)
+	leftConfirm  chan (bool)
+	rightPEChan  chan (Entity)
+	rightConfirm chan (bool)
+	abovePEChan  chan (Entity)
+	aboveConfirm chan (bool)
+	belowPEChan  chan (Entity)
+	belowConfirm chan (bool)
 }
 
 func newPositionServer(xMinBound int, xMaxBound int, yMinBound int, yMaxBound int, color string) *PositionServer {
@@ -29,16 +34,12 @@ func newPositionServer(xMinBound int, xMaxBound int, yMinBound int, yMaxBound in
 		yMaxBound: yMaxBound,
 		color:     color,
 		entities:  []*Entity{},
-		//buffered
-		PassedEntityChannel: make(chan Entity, passedChanBufSize),
-		//buffered, length of 1 (basically non blocking channel)
+		//buffered, length of 1 (non blocking channel)
 		NewEntityChannel: make(chan int, 1),
-		AdjacentPS: AdjacentPositionServers{
-			leftSent:  make(chan bool),
-			rightSent: make(chan bool),
-			aboveSent: make(chan bool),
-			belowSent: make(chan bool),
-		},
+		//buffered, length of passedChanBufSize
+		PassedEntityChannel: make(chan Entity, passedChanBufSize),
+		//buffered, length of 4
+		PassedEntConfirmations: make(chan bool, 4),
 	}
 }
 

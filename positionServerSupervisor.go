@@ -55,10 +55,17 @@ func (pss *PositionServerSupervisor) initServers(numberOfPositionServers int, si
 	return nil
 }
 
-func (pss *PositionServerSupervisor) referenceAdjacentPassedEntityChannels(serverAdjacency serverAdjacency) error {
-	//pss.positionServers[serverAdjacency.serverNumber].
-	//pss.positionServers[serverAdjacency.serverNumber]
-	return nil
+func (pss *PositionServerSupervisor) referenceAdjacentPassedEntityChannels(sa serverAdjacency) {
+	pss.positionServers[sa.serverNumber].AdjacentPassChannels = AdjacentPassedEntChannels{
+		leftPEChan:   pss.positionServers[sa.left].PassedEntityChannel,
+		leftConfirm:  pss.positionServers[sa.left].PassedEntConfirmations,
+		rightPEChan:  pss.positionServers[sa.right].PassedEntityChannel,
+		rightConfirm: pss.positionServers[sa.right].PassedEntConfirmations,
+		abovePEChan:  pss.positionServers[sa.above].PassedEntityChannel,
+		aboveConfirm: pss.positionServers[sa.above].PassedEntConfirmations,
+		belowPEChan:  pss.positionServers[sa.below].PassedEntityChannel,
+		belowConfirm: pss.positionServers[sa.below].PassedEntConfirmations,
+	}
 }
 
 type serverAdjacency struct {
