@@ -62,7 +62,7 @@ func (ps *PositionServer) addEntity(Entity) {
 	ps.entities = append(ps.entities, addedEntity)
 }
 
-func (ps *PositionServer) tick() {
+func (ps *PositionServer) mainLoop() {
 	ps.moveEntities()
 	ps.removeOutOfBoundsEntities()
 	/*
