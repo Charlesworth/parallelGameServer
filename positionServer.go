@@ -1,6 +1,7 @@
 package main
 
 import "math/rand"
+import "sync"
 
 type PositionServer struct {
 	xMinBound              int
@@ -13,7 +14,7 @@ type PositionServer struct {
 	PassedEntityChannel    chan (Entity)
 	PassedEntConfirmations chan (bool)
 	AdjacentPassChannels   AdjacentPassedEntChannels
-	//lockStepWG	sync.waitGroup
+	lockStepWG             sync.WaitGroup
 }
 
 type AdjacentPassedEntChannels struct {
@@ -27,7 +28,7 @@ type AdjacentPassedEntChannels struct {
 	belowConfirm chan (bool)
 }
 
-func newPositionServer(xMinBound int, xMaxBound int, yMinBound int, yMaxBound int, color string) *PositionServer {
+func newPositionServer(xMinBound int, xMaxBound int, yMinBound int, yMaxBound int, color string, lockStepWG sync.WaitGroup) *PositionServer {
 	return &PositionServer{
 		xMinBound: xMinBound,
 		xMaxBound: xMaxBound,
@@ -41,6 +42,7 @@ func newPositionServer(xMinBound int, xMaxBound int, yMinBound int, yMaxBound in
 		PassedEntityChannel: make(chan Entity, passedChanBufSize),
 		//buffered, length of 4
 		PassedEntConfirmations: make(chan bool, 4),
+		lockStepWG:             lockStepWG,
 	}
 }
 
@@ -66,7 +68,7 @@ func (ps *PositionServer) mainLoop() {
 	ps.processNewEntityChan()
 	//send metrics
 	//render
-	// ps.lockStep()
+	ps.lockStep()
 }
 
 func (ps *PositionServer) confirmNonePassed() {
@@ -77,7 +79,8 @@ func (ps *PositionServer) confirmNonePassed() {
 }
 
 func (ps *PositionServer) lockStep() {
-	//ps.lockStepWG send
+	ps.lockStepWG.Done()
+	ps.lockStepWG.Wait()
 }
 
 func (ps *PositionServer) waitForPassedEntities() (entitiesToProcess bool) {
@@ -112,7 +115,35 @@ func (ps *PositionServer) addEntity(Entity) {
 }
 
 func (ps *PositionServer) sendOutOfBoundEntities(entities []Entity) {
-	//TODO implement
+	leftConfirm, rightConfirm, aboveConfirm, belowConfirm := false, false, false, false
+
+	for _, entity := range entities {
+		if entity.xPos < ps.xMinBound {
+			ps.AdjacentPassChannels.leftPEChan <- entity
+			leftConfirm = true
+			continue
+		}
+		if entity.xPos > ps.xMaxBound {
+			ps.AdjacentPassChannels.rightPEChan <- entity
+			rightConfirm = true
+			continue
+		}
+		if entity.yPos < ps.yMinBound {
+			ps.AdjacentPassChannels.abovePEChan <- entity
+			aboveConfirm = true
+			continue
+		}
+		if entity.yPos > ps.yMaxBound {
+			ps.AdjacentPassChannels.belowPEChan <- entity
+			belowConfirm = true
+			continue
+		}
+	}
+
+	ps.AdjacentPassChannels.leftConfirm <- leftConfirm
+	ps.AdjacentPassChannels.rightConfirm <- rightConfirm
+	ps.AdjacentPassChannels.aboveConfirm <- aboveConfirm
+	ps.AdjacentPassChannels.belowConfirm <- belowConfirm
 }
 
 func (ps *PositionServer) processNewEntityChan() {

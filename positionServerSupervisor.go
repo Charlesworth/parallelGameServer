@@ -4,11 +4,19 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"sync"
 )
 
 type PositionServerSupervisor struct {
 	positionServers []*PositionServer
-	//sync.waitgroup
+	waitGroup       sync.WaitGroup
+}
+
+func newPositionServerSupervisor() *PositionServerSupervisor {
+	return &PositionServerSupervisor{
+		positionServers: []*PositionServer{},
+		waitGroup:       sync.WaitGroup{},
+	}
 }
 
 func (pss *PositionServerSupervisor) initServers(numberOfPositionServers int, sideLengthPerServer int, startingEntitiesPerServer int) error {
@@ -40,7 +48,7 @@ func (pss *PositionServerSupervisor) initServers(numberOfPositionServers int, si
 	for i := 0; i < numberOfPositionServers; i++ {
 		//find bounds and init server
 		xMin, xMax, yMin, yMax := getXYCoordinates(i, squareRoot, sideLengthPerServer)
-		newPS := newPositionServer(xMin, xMax, yMin, yMax, "red") //TODO color
+		newPS := newPositionServer(xMin, xMax, yMin, yMax, "red", pss.waitGroup) //TODO color
 
 		//add new entities
 		for iNewEntities := startingEntitiesPerServer; iNewEntities > 0; iNewEntities-- {
@@ -58,12 +66,20 @@ func (pss *PositionServerSupervisor) initServers(numberOfPositionServers int, si
 }
 
 func (pss *PositionServerSupervisor) startServers() {
+	pss.waitGroup.Add(len(pss.positionServers))
+
 	for _, positionServer := range pss.positionServers {
 		go positionServer.mainLoop()
 	}
 
+	//TODO potential timing issue when wait is freed, if this thread goes last then
+	//no wait will be set
+	for {
+		pss.waitGroup.Wait()
+		pss.waitGroup.Add(len(pss.positionServers))
+	}
+
 	/*
-	  - supervise the wait group
 	  - send any newEntity() calls
 	*/
 }

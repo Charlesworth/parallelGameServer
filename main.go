@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"math/rand"
 	"time"
 )
@@ -25,5 +26,13 @@ func main() {
 
 	fmt.Println("Distributed Position Servers")
 	fmt.Println("Starting with servers[", servers, "], startingEntities[", startingEntities, "], sideLength[", sideLength, "]")
+
+	psSupervisor := newPositionServerSupervisor()
+	err := psSupervisor.initServers(servers, sideLength, startingEntities)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	psSupervisor.startServers()
 
 }
