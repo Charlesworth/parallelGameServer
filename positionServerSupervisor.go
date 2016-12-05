@@ -90,6 +90,11 @@ func (pss *PositionServerSupervisor) startServers() {
 
 		pss.waitGroup.Wait()
 		time.Sleep(time.Second)
+		/*
+			TODO:
+			- hit 60 ticks per second (16.6666 millis per tick)
+			- log a warn if dips under
+		*/
 
 		globalMetricServer.flushMetrics()
 
