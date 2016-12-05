@@ -10,6 +10,7 @@ import (
 
 var passedChanBufSize = 10
 var verbose bool
+var globalMetricServer metricServer
 
 func main() {
 	rand.Seed(time.Now().UTC().UnixNano())
@@ -30,6 +31,8 @@ func main() {
 	fmt.Println("Distributed Position Servers")
 	fmt.Println("Starting with servers[", servers, "], startingEntities[", startingEntities, "], sideLength[", sideLength, "]")
 
+	initGlobalMetricServer(servers)
+
 	psSupervisor := newPositionServerSupervisor()
 	err := psSupervisor.initServers(servers, sideLength, startingEntities)
 	if err != nil {
@@ -38,4 +41,8 @@ func main() {
 
 	psSupervisor.startServers()
 
+}
+
+func initGlobalMetricServer(numberOfServers int) {
+	newMetricServer(numberOfServers)
 }

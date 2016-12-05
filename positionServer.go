@@ -62,6 +62,7 @@ func (ps *PositionServer) mainLoop() {
 	}
 
 	//wait for their confirmation of passedEntitys send
+	//TODO could cntinusly process passed until confirmation to spread load
 	passedEnitities := ps.waitForPassedEntities()
 
 	//if any entities where passed, process them
@@ -70,22 +71,21 @@ func (ps *PositionServer) mainLoop() {
 	}
 
 	//ps.processNewEntityChan() ERROR HERE
-	//send metrics
 	//render
-	// if verbose {
-	// ps.verboseLogs()
-	// }
+	if verbose {
+		ps.verboseLogs()
+	}
+
+	//send metrics
+	globalMetricServer.addMetrics(len(ps.entities))
+
 	ps.lockStep()
 	// }
 }
 
 func (ps *PositionServer) verboseLogs() {
 	log.Println("[x:", ps.xMinBound, ", y:", ps.yMinBound, "]",
-		"\nentity number: ", len(ps.entities))
-	for _, entity := range ps.entities {
-		log.Println(entity)
-	}
-	log.Println("----------------------------------------------")
+		" entity number: ", len(ps.entities))
 }
 
 func (ps *PositionServer) confirmNonePassed() {
@@ -176,10 +176,14 @@ func (ps *PositionServer) processPassedEntityChan() {
 	for {
 		select {
 		case entity := <-ps.PassedEntityChannel:
-			log.Println("recieved:", entity)
+			if verbose {
+				log.Println("recieved:", entity)
+			}
 			if !entity.withinBounds(ps.xMinBound, ps.xMaxBound, ps.yMinBound, ps.yMaxBound) {
 				entity = ps.convertCircularPassedEntity(entity)
-				log.Println("converted:", entity)
+				if verbose {
+					log.Println("converted:", entity)
+				}
 			}
 			ps.addEntity(entity)
 		default:

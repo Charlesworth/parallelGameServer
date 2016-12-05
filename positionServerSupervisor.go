@@ -77,22 +77,22 @@ func (pss *PositionServerSupervisor) startServers() {
 	// 	go positionServer.mainLoop()
 	// }
 
-	log.Println("-------------------------START----------------------")
 	log.Println("number of servers:", len(pss.positionServers))
+	log.Println("-------------------------START----------------------")
 
 	//TODO potential timing issue when wait is freed, if this thread goes last then
 	//no wait will be set
 	for {
 
 		for _, positionServer := range pss.positionServers {
-			if verbose {
-				positionServer.verboseLogs()
-			}
 			go positionServer.mainLoop()
 		}
 
 		pss.waitGroup.Wait()
 		time.Sleep(time.Second)
+
+		globalMetricServer.flushMetrics()
+
 		log.Println("-------------------------TICK----------------------")
 		// pss.waitGroup.Done()
 		pss.waitGroup.Add(len(pss.positionServers))
