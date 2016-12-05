@@ -1,7 +1,10 @@
 package main
 
-import "math/rand"
-import "sync"
+import (
+	"log"
+	"math/rand"
+	"sync"
+)
 
 type PositionServer struct {
 	xMinBound              int
@@ -14,7 +17,7 @@ type PositionServer struct {
 	PassedEntityChannel    chan (Entity)
 	PassedEntConfirmations chan (bool)
 	AdjacentPassChannels   AdjacentPassedEntChannels
-	lockStepWG             sync.WaitGroup
+	lockStepWG             *sync.WaitGroup
 }
 
 type AdjacentPassedEntChannels struct {
@@ -28,7 +31,7 @@ type AdjacentPassedEntChannels struct {
 	belowConfirm chan (bool)
 }
 
-func newPositionServer(xMinBound int, xMaxBound int, yMinBound int, yMaxBound int, color string, lockStepWG sync.WaitGroup) *PositionServer {
+func newPositionServer(xMinBound int, xMaxBound int, yMinBound int, yMaxBound int, color string, lockStepWG *sync.WaitGroup) *PositionServer {
 	return &PositionServer{
 		xMinBound: xMinBound,
 		xMaxBound: xMaxBound,
@@ -47,6 +50,7 @@ func newPositionServer(xMinBound int, xMaxBound int, yMinBound int, yMaxBound in
 }
 
 func (ps *PositionServer) mainLoop() {
+	// for {
 	ps.moveEntities()
 
 	//check for outOfBounds Entities and send any to their new servers
@@ -65,10 +69,23 @@ func (ps *PositionServer) mainLoop() {
 		ps.processPassedEntityChan()
 	}
 
-	ps.processNewEntityChan()
+	//ps.processNewEntityChan() ERROR HERE
 	//send metrics
 	//render
+	// if verbose {
+	// ps.verboseLogs()
+	// }
 	ps.lockStep()
+	// }
+}
+
+func (ps *PositionServer) verboseLogs() {
+	log.Println("[x:", ps.xMinBound, ", y:", ps.yMinBound, "]",
+		"\nentity number: ", len(ps.entities))
+	for _, entity := range ps.entities {
+		log.Println(entity)
+	}
+	log.Println("----------------------------------------------")
 }
 
 func (ps *PositionServer) confirmNonePassed() {
@@ -80,7 +97,6 @@ func (ps *PositionServer) confirmNonePassed() {
 
 func (ps *PositionServer) lockStep() {
 	ps.lockStepWG.Done()
-	ps.lockStepWG.Wait()
 }
 
 func (ps *PositionServer) waitForPassedEntities() (entitiesToProcess bool) {
@@ -107,9 +123,12 @@ func (ps *PositionServer) createNewEntity() {
 	ps.entities = append(ps.entities, newEntity)
 }
 
-func (ps *PositionServer) addEntity(Entity) {
+func (ps *PositionServer) addEntity(e Entity) {
 	addedEntity := &Entity{
-		color: ps.color,
+		xPos:      e.xPos,
+		yPos:      e.yPos,
+		direction: e.direction,
+		color:     ps.color,
 	}
 	ps.entities = append(ps.entities, addedEntity)
 }
@@ -157,11 +176,36 @@ func (ps *PositionServer) processPassedEntityChan() {
 	for {
 		select {
 		case entity := <-ps.PassedEntityChannel:
+			log.Println("recieved:", entity)
+			if !entity.withinBounds(ps.xMinBound, ps.xMaxBound, ps.yMinBound, ps.yMaxBound) {
+				entity = ps.convertCircularPassedEntity(entity)
+				log.Println("converted:", entity)
+			}
 			ps.addEntity(entity)
 		default:
 			return
 		}
 	}
+}
+
+func (ps *PositionServer) convertCircularPassedEntity(entity Entity) Entity {
+	if entity.xPos > ps.xMaxBound {
+		entity.xPos = ps.xMinBound
+		return entity
+	}
+	if entity.xPos < ps.xMinBound {
+		entity.xPos = ps.xMaxBound
+		return entity
+	}
+	if entity.yPos > ps.yMaxBound {
+		entity.yPos = ps.yMinBound
+		return entity
+	}
+	if entity.yPos < ps.yMinBound {
+		entity.yPos = ps.yMaxBound
+		return entity
+	}
+	return entity
 }
 
 func (ps *PositionServer) removeOutOfBoundsEntities() (removedEntities []Entity) {

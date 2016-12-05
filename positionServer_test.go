@@ -2,6 +2,7 @@ package main
 
 import (
 	"math/rand"
+	"sync"
 	"testing"
 	"time"
 )
@@ -12,7 +13,7 @@ func TestPositionServer_setup(t *testing.T) {
 }
 
 func TestPositionServer_processNewEntityChannel(t *testing.T) {
-	testPS := newPositionServer(0, 10, 0, 10, "")
+	testPS := newPositionServer(0, 10, 0, 10, "", sync.WaitGroup{})
 	testPS.NewEntityChannel <- 2
 	testPS.processNewEntityChan()
 
@@ -22,7 +23,7 @@ func TestPositionServer_processNewEntityChannel(t *testing.T) {
 }
 
 func TestPositionServer_processPassedEntityChannel(t *testing.T) {
-	testPS := newPositionServer(0, 10, 0, 10, "")
+	testPS := newPositionServer(0, 10, 0, 10, "", sync.WaitGroup{})
 	testPS.PassedEntityChannel <- Entity{
 		xPos:      5,
 		yPos:      5,
@@ -36,7 +37,7 @@ func TestPositionServer_processPassedEntityChannel(t *testing.T) {
 }
 
 func TestPositionServer_removeOutOfBoundsEntities(t *testing.T) {
-	testPS := newPositionServer(0, 10, 0, 10, "")
+	testPS := newPositionServer(0, 10, 0, 10, "", sync.WaitGroup{})
 
 	inBoundsEntity := Entity{
 		xPos:      5,
@@ -67,7 +68,7 @@ func TestPositionServer_removeOutOfBoundsEntities(t *testing.T) {
 }
 
 func TestPositionServer_entitiesInBounds(t *testing.T) {
-	testPS := newPositionServer(0, 10, 0, 10, "")
+	testPS := newPositionServer(0, 10, 0, 10, "", sync.WaitGroup{})
 
 	testEntity := Entity{
 		xPos:      2,
@@ -99,7 +100,7 @@ func TestPositionServer_entitiesInBounds(t *testing.T) {
 }
 
 func TestPositionServer_intersectsBounds(t *testing.T) {
-	testPS := newPositionServer(0, 10, 0, 10, "")
+	testPS := newPositionServer(0, 10, 0, 10, "", sync.WaitGroup{})
 
 	if !testPS.intersectsBounds(0, 10, 0, 10) {
 		t.Error()
@@ -132,7 +133,7 @@ func TestPositionServer_intersectsBounds(t *testing.T) {
 
 func TestPositionServer_waitForPassedEntities(t *testing.T) {
 	//No need for error message here, will deadlock and error if fail
-	testServer := newPositionServer(0, 0, 0, 0, "")
+	testServer := newPositionServer(0, 0, 0, 0, "", sync.WaitGroup{})
 	//expect 4 confirmations on every sever
 	testServer.PassedEntConfirmations <- true
 	testServer.PassedEntConfirmations <- true

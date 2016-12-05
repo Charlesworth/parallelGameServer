@@ -1,17 +1,19 @@
-Pos Server
-- move entities
-- send out of bounds entities
-- recieve new in bounds entities
-- create new entities
-- send leaving entity metrics
-- send client window intersection entities
+# Parallel server architecture for position and movement of elements in a 2D space
 
-Pos Server Supervisor
-- init Pos Servers
-- pass channels between adjacent Pos Servers
-- Start Servers
-- lockstep
+For fun project to build a scalable architecture for tracking movement and position of elements in a 2D game. Using multiple positionServers to store and pass elements between each other and a positionServerSupervisor to lockstep them all, take a look at serverDiagram.png for a simplistic view. WIP.
 
+## RUN
+Use 'go build' and then run executable, -h for flag options. Not much to see without a client renderer (coming), but use the verbose option to show logs of what's going on.
+
+## TEST    
+'go test
+At the moment ~50% coverage, not great!
+
+## TODO
 Metric Server
-- init global entity deleted channels
-- watch channel and decrement accordingly
+- watch global entity number
+- watch ticks/second
+
+Client Renderer
+- SDL window to see the elements moving on the screen
+- can use my own Go game engine

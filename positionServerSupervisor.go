@@ -2,20 +2,21 @@ package main
 
 import (
 	"errors"
-	"fmt"
+	"log"
 	"math"
 	"sync"
+	"time"
 )
 
 type PositionServerSupervisor struct {
 	positionServers []*PositionServer
-	waitGroup       sync.WaitGroup
+	waitGroup       *sync.WaitGroup
 }
 
 func newPositionServerSupervisor() *PositionServerSupervisor {
 	return &PositionServerSupervisor{
 		positionServers: []*PositionServer{},
-		waitGroup:       sync.WaitGroup{},
+		waitGroup:       &sync.WaitGroup{},
 	}
 }
 
@@ -26,7 +27,7 @@ func (pss *PositionServerSupervisor) initServers(numberOfPositionServers int, si
 	}
 
 	//check the the square root of numberOfPositionServers is a whole number
-	squareRootFloat := math.Sqrt(float64(25))
+	squareRootFloat := math.Sqrt(float64(numberOfPositionServers))
 	if math.Trunc(squareRootFloat) != squareRootFloat {
 		return errors.New("PositionServerSupervisor.initServers() numberOfPositionServers must be a square of a whole number")
 	}
@@ -42,7 +43,7 @@ func (pss *PositionServerSupervisor) initServers(numberOfPositionServers int, si
 	}
 
 	squareRoot := int(squareRootFloat)
-	fmt.Println(squareRoot)
+	log.Println("squareRoot", squareRoot)
 
 	//for numberOfPositionServers
 	for i := 0; i < numberOfPositionServers; i++ {
@@ -54,6 +55,10 @@ func (pss *PositionServerSupervisor) initServers(numberOfPositionServers int, si
 		for iNewEntities := startingEntitiesPerServer; iNewEntities > 0; iNewEntities-- {
 			newPS.createNewEntity()
 		}
+
+		pss.positionServers = append(pss.positionServers, newPS)
+		log.Println("pos server made")
+
 	}
 
 	//pass each server its adjacent servers' PassEntity channels
@@ -68,14 +73,28 @@ func (pss *PositionServerSupervisor) initServers(numberOfPositionServers int, si
 func (pss *PositionServerSupervisor) startServers() {
 	pss.waitGroup.Add(len(pss.positionServers))
 
-	for _, positionServer := range pss.positionServers {
-		go positionServer.mainLoop()
-	}
+	// for _, positionServer := range pss.positionServers {
+	// 	go positionServer.mainLoop()
+	// }
+
+	log.Println("-------------------------START----------------------")
+	log.Println("number of servers:", len(pss.positionServers))
 
 	//TODO potential timing issue when wait is freed, if this thread goes last then
 	//no wait will be set
 	for {
+
+		for _, positionServer := range pss.positionServers {
+			if verbose {
+				positionServer.verboseLogs()
+			}
+			go positionServer.mainLoop()
+		}
+
 		pss.waitGroup.Wait()
+		time.Sleep(time.Second)
+		log.Println("-------------------------TICK----------------------")
+		// pss.waitGroup.Done()
 		pss.waitGroup.Add(len(pss.positionServers))
 	}
 
