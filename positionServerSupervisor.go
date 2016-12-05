@@ -36,17 +36,13 @@ func (pss *PositionServerSupervisor) initServers(numberOfPositionServers int, si
 	squareRoot := int(squareRootFloat)
 	fmt.Println(squareRoot)
 
+	//for numberOfPositionServers
 	for i := 0; i < numberOfPositionServers; i++ {
-		/*
-		   for numberOfPositionServers
-		     make each positionServer
-		     for startingEntitiesPerServer
-		       positionServer.newEntity
-		*/
-		//find next bounds
-		// newPS := newPositionServer(i, xMinBound int, xMaxBound int, yMinBound int, yMaxBound int, "red")
+		//find bounds and init server
+		xMin, xMax, yMin, yMax := getXYCoordinates(i, squareRoot, sideLengthPerServer)
+		newPS := newPositionServer(xMin, xMax, yMin, yMax, "red") //TODO color
 
-		newPS := newPositionServer(0, 10, 0, 10, "red") //problem here, get proper bound input
+		//add new entities
 		for iNewEntities := startingEntitiesPerServer; iNewEntities > 0; iNewEntities-- {
 			newPS.createNewEntity()
 		}
@@ -59,33 +55,6 @@ func (pss *PositionServerSupervisor) initServers(numberOfPositionServers int, si
 	}
 
 	return nil
-}
-
-func getXY(i int, squareRoot int, length int) (xMin int, xMax int, yMin int, yMax int) {
-	i = i + 1
-
-	/*
-		  Fix this bit
-			var row int
-			if i / squareRoot == squareRoot
-			row := i / squareRoot
-			fmt.Println("row", row)
-	*/
-	row := i / squareRoot
-
-	var col int
-	if i%squareRoot == 0 {
-		col = squareRoot - 1
-	} else {
-		col = (i % squareRoot) - 1
-	}
-	fmt.Println("col", col)
-
-	xMin = col * length
-	xMax = (col + 1) * length
-	yMin = row * length
-	yMax = (row + 1) * length
-	return xMin, xMax, yMin, yMax
 }
 
 func (pss *PositionServerSupervisor) startServers() {
@@ -106,6 +75,21 @@ type serverAdjacency struct {
 	below int
 }
 
+func (pss *PositionServerSupervisor) referenceAdjacentPassedEntityChannels(serverNo int, adjacentServerNumbers serverAdjacency) {
+	pss.positionServers[serverNo].AdjacentPassChannels = AdjacentPassedEntChannels{
+		leftPEChan:   pss.positionServers[adjacentServerNumbers.left].PassedEntityChannel,
+		leftConfirm:  pss.positionServers[adjacentServerNumbers.left].PassedEntConfirmations,
+		rightPEChan:  pss.positionServers[adjacentServerNumbers.right].PassedEntityChannel,
+		rightConfirm: pss.positionServers[adjacentServerNumbers.right].PassedEntConfirmations,
+		abovePEChan:  pss.positionServers[adjacentServerNumbers.above].PassedEntityChannel,
+		aboveConfirm: pss.positionServers[adjacentServerNumbers.above].PassedEntConfirmations,
+		belowPEChan:  pss.positionServers[adjacentServerNumbers.below].PassedEntityChannel,
+		belowConfirm: pss.positionServers[adjacentServerNumbers.below].PassedEntConfirmations,
+	}
+}
+
+//-------Helper Functions---------------
+
 func getAdjacentServerNumbers(serverNumber int, totalServers int, squareRoot int) serverAdjacency {
 	position := serverNumber + 1
 	thisServer := serverAdjacency{}
@@ -124,14 +108,14 @@ func getAdjacentServerNumbers(serverNumber int, totalServers int, squareRoot int
 		thisServer.right = position + 1
 	}
 
-	//above
+	//ABOVE
 	if position <= squareRoot {
 		thisServer.above = totalServers + (-squareRoot + position)
 	} else {
 		thisServer.above = position - squareRoot
 	}
 
-	//BOTTOM
+	//BELOW
 	if position > (totalServers - squareRoot) {
 		thisServer.below = position - (totalServers - squareRoot)
 	} else {
@@ -148,15 +132,27 @@ func getAdjacentServerNumbers(serverNumber int, totalServers int, squareRoot int
 	return thisServer
 }
 
-func (pss *PositionServerSupervisor) referenceAdjacentPassedEntityChannels(serverNo int, adjacentServerNumbers serverAdjacency) {
-	pss.positionServers[serverNo].AdjacentPassChannels = AdjacentPassedEntChannels{
-		leftPEChan:   pss.positionServers[adjacentServerNumbers.left].PassedEntityChannel,
-		leftConfirm:  pss.positionServers[adjacentServerNumbers.left].PassedEntConfirmations,
-		rightPEChan:  pss.positionServers[adjacentServerNumbers.right].PassedEntityChannel,
-		rightConfirm: pss.positionServers[adjacentServerNumbers.right].PassedEntConfirmations,
-		abovePEChan:  pss.positionServers[adjacentServerNumbers.above].PassedEntityChannel,
-		aboveConfirm: pss.positionServers[adjacentServerNumbers.above].PassedEntConfirmations,
-		belowPEChan:  pss.positionServers[adjacentServerNumbers.below].PassedEntityChannel,
-		belowConfirm: pss.positionServers[adjacentServerNumbers.below].PassedEntConfirmations,
+func getXYCoordinates(i int, squareRoot int, length int) (xMin int, xMax int, yMin int, yMax int) {
+	i = i + 1
+
+	var row int
+	fltI, fltSquareRoot := float64(i), float64(squareRoot)
+	if (fltI / fltSquareRoot) == math.Trunc(fltI/fltSquareRoot) {
+		row = (i / squareRoot) - 1
+	} else {
+		row = i / squareRoot
 	}
+
+	var col int
+	if i%squareRoot == 0 {
+		col = squareRoot - 1
+	} else {
+		col = (i % squareRoot) - 1
+	}
+
+	xMin = col * length
+	xMax = (col + 1) * length
+	yMin = row * length
+	yMax = (row + 1) * length
+	return xMin, xMax, yMin, yMax
 }

@@ -50,8 +50,15 @@ func TestPositionServer_removeOutOfBoundsEntities(t *testing.T) {
 		direction: 0,
 	}
 
-	testPS.entities = append(testPS.entities, &inBoundsEntity)
+	anotherOutOfBoundsEntity := Entity{
+		xPos:      12,
+		yPos:      12,
+		direction: 0,
+	}
+
 	testPS.entities = append(testPS.entities, &outOfBoundsEntity)
+	testPS.entities = append(testPS.entities, &inBoundsEntity)
+	testPS.entities = append(testPS.entities, &anotherOutOfBoundsEntity)
 
 	testPS.removeOutOfBoundsEntities()
 	if len(testPS.entities) != 1 {

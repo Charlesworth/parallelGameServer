@@ -67,3 +67,64 @@ func Test_getAdjacentServerNumbers(t *testing.T) {
 		}
 	}
 }
+
+type getXYCoordinatesTableTest struct {
+	serverNumber int
+	squareRoot   int
+	length       int
+	xMinResult   int
+	xMaxResult   int
+	yMinResult   int
+	yMaxResult   int
+}
+
+var getXYCoordinatesTests = []getXYCoordinatesTableTest{
+	getXYCoordinatesTableTest{
+		serverNumber: 0,
+		squareRoot:   4,
+		length:       10,
+		xMinResult:   0,
+		xMaxResult:   10,
+		yMinResult:   0,
+		yMaxResult:   10,
+	},
+	getXYCoordinatesTableTest{
+		serverNumber: 15,
+		squareRoot:   4,
+		length:       10,
+		xMinResult:   30,
+		xMaxResult:   40,
+		yMinResult:   30,
+		yMaxResult:   40,
+	},
+	getXYCoordinatesTableTest{
+		serverNumber: 2,
+		squareRoot:   3,
+		length:       10,
+		xMinResult:   20,
+		xMaxResult:   30,
+		yMinResult:   20,
+		yMaxResult:   30,
+	},
+	getXYCoordinatesTableTest{
+		serverNumber: 6,
+		squareRoot:   3,
+		length:       10,
+		xMinResult:   0,
+		xMaxResult:   10,
+		yMinResult:   20,
+		yMaxResult:   30,
+	},
+}
+
+func Test_getXYCoordinates(t *testing.T) {
+	for _, test := range getXYCoordinatesTests {
+		xMinTest, xMaxTest, yMinTest, yMaxTest := getXYCoordinates(test.serverNumber, test.squareRoot, test.length)
+		if (test.xMinResult != xMinTest) &&
+			(test.xMaxResult != xMaxTest) &&
+			(test.yMinResult != yMinTest) &&
+			(test.yMaxResult != yMaxTest) {
+			t.Error("getXYCoordinates() error: serverNumber[", test.serverNumber, "] totalServers[", test.squareRoot, "]")
+		}
+	}
+}
