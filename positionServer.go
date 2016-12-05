@@ -13,6 +13,7 @@ type PositionServer struct {
 	PassedEntityChannel    chan (Entity)
 	PassedEntConfirmations chan (bool)
 	AdjacentPassChannels   AdjacentPassedEntChannels
+	//lockStepWG	sync.waitGroup
 }
 
 type AdjacentPassedEntChannels struct {
@@ -43,9 +44,53 @@ func newPositionServer(xMinBound int, xMaxBound int, yMinBound int, yMaxBound in
 	}
 }
 
-// func (ps *PositionServer) addAdjacentPositionServers() {
-//
-// }
+func (ps *PositionServer) mainLoop() {
+	ps.moveEntities()
+
+	//check for outOfBounds Entities and send any to their new servers
+	outOfBoundsEnitites := ps.removeOutOfBoundsEntities()
+	if len(outOfBoundsEnitites) != 0 {
+		ps.sendOutOfBoundEntities(outOfBoundsEnitites)
+	} else {
+		ps.confirmNonePassed()
+	}
+
+	//wait for their confirmation of passedEntitys send
+	passedEnitities := ps.waitForPassedEntities()
+
+	//if any entities where passed, process them
+	if passedEnitities {
+		ps.processPassedEntityChan()
+	}
+
+	ps.processNewEntityChan()
+	//send metrics
+	//render
+	// ps.lockStep()
+}
+
+func (ps *PositionServer) confirmNonePassed() {
+	ps.AdjacentPassChannels.leftConfirm <- false
+	ps.AdjacentPassChannels.rightConfirm <- false
+	ps.AdjacentPassChannels.aboveConfirm <- false
+	ps.AdjacentPassChannels.belowConfirm <- false
+}
+
+func (ps *PositionServer) lockStep() {
+	//ps.lockStepWG send
+}
+
+func (ps *PositionServer) waitForPassedEntities() (entitiesToProcess bool) {
+	entitiesToProcess = false
+	for sentConfirmations := 0; sentConfirmations < 4; {
+		containsPassedEntity := <-ps.PassedEntConfirmations
+		if containsPassedEntity {
+			entitiesToProcess = true
+		}
+		sentConfirmations = sentConfirmations + 1
+	}
+	return
+}
 
 func (ps *PositionServer) createNewEntity() {
 	xPos := ps.xMinBound + ((ps.xMaxBound - ps.xMinBound) / 2)
@@ -66,22 +111,8 @@ func (ps *PositionServer) addEntity(Entity) {
 	ps.entities = append(ps.entities, addedEntity)
 }
 
-func (ps *PositionServer) mainLoop() {
-	ps.moveEntities()
-	ps.removeOutOfBoundsEntities()
-	/*
-		lockstep with supervisor
-
-		OR
-
-		send a outOfBoundsSent message to each adjacent posServers and wait for their
-		outOfBoundsSent message before continuing
-	*/
-	ps.processPassedEntityChan()
-	ps.processNewEntityChan()
-	//send metrics
-	//render
-	//lockstep
+func (ps *PositionServer) sendOutOfBoundEntities(entities []Entity) {
+	//TODO implement
 }
 
 func (ps *PositionServer) processNewEntityChan() {
@@ -102,11 +133,11 @@ func (ps *PositionServer) processPassedEntityChan() {
 	}
 }
 
-func (ps *PositionServer) removeOutOfBoundsEntities() {
+func (ps *PositionServer) removeOutOfBoundsEntities() (removedEntities []Entity) {
 	for i := len(ps.entities) - 1; i >= 0; i-- {
 		entity := ps.entities[i]
 		if !entity.withinBounds(ps.xMinBound, ps.xMaxBound, ps.yMinBound, ps.yMaxBound) {
-			//TODO: move entity here
+			removedEntities = append(removedEntities, *entity)
 			if i != len(ps.entities)-1 {
 				ps.entities = append(ps.entities[:i], ps.entities[i+1:]...)
 			} else {
@@ -114,6 +145,7 @@ func (ps *PositionServer) removeOutOfBoundsEntities() {
 			}
 		}
 	}
+	return
 }
 
 func (ps *PositionServer) moveEntities() {

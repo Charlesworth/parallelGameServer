@@ -8,16 +8,7 @@ import (
 
 type PositionServerSupervisor struct {
 	positionServers []*PositionServer
-}
-
-func (pss *PositionServerSupervisor) relocateOutOfBoundsEntities() {
-	for entity := range outOfBoundEntities {
-		for _, ps := range pss.positionServers {
-			if entity.withinBounds(ps.xMinBound, ps.xMaxBound, ps.yMinBound, ps.yMaxBound) {
-				ps.addEntity(entity)
-			}
-		}
-	}
+	//sync.waitgroup
 }
 
 func (pss *PositionServerSupervisor) initServers(numberOfPositionServers int, sideLengthPerServer int, startingEntitiesPerServer int) error {
@@ -44,70 +35,57 @@ func (pss *PositionServerSupervisor) initServers(numberOfPositionServers int, si
 
 	squareRoot := int(squareRootFloat)
 	fmt.Println(squareRoot)
-	/*
-	   for numberOfPositionServers
-	     make each positionServer
-	     for startingEntitiesPerServer
-	       positionServer.newEntity
-	   pass each server its adjacent servers' PassedEntityChannel
-	*/
+
+	for i := 0; i < numberOfPositionServers; i++ {
+		/*
+		   for numberOfPositionServers
+		     make each positionServer
+		     for startingEntitiesPerServer
+		       positionServer.newEntity
+		*/
+		//find next bounds
+		// newPS := newPositionServer(i, xMinBound int, xMaxBound int, yMinBound int, yMaxBound int, "red")
+
+		newPS := newPositionServer(0, 10, 0, 10, "red") //problem here, get proper bound input
+		for iNewEntities := startingEntitiesPerServer; iNewEntities > 0; iNewEntities-- {
+			newPS.createNewEntity()
+		}
+	}
+
+	//pass each server its adjacent servers' PassEntity channels
+	for serverNumber := range pss.positionServers {
+		adjacentServersNumbers := getAdjacentServerNumbers(serverNumber, numberOfPositionServers, squareRoot)
+		pss.referenceAdjacentPassedEntityChannels(serverNumber, adjacentServersNumbers)
+	}
 
 	return nil
 }
 
-func (pss *PositionServerSupervisor) referenceAdjacentPassedEntityChannels(sa serverAdjacency) {
-	pss.positionServers[sa.serverNumber].AdjacentPassChannels = AdjacentPassedEntChannels{
-		leftPEChan:   pss.positionServers[sa.left].PassedEntityChannel,
-		leftConfirm:  pss.positionServers[sa.left].PassedEntConfirmations,
-		rightPEChan:  pss.positionServers[sa.right].PassedEntityChannel,
-		rightConfirm: pss.positionServers[sa.right].PassedEntConfirmations,
-		abovePEChan:  pss.positionServers[sa.above].PassedEntityChannel,
-		aboveConfirm: pss.positionServers[sa.above].PassedEntConfirmations,
-		belowPEChan:  pss.positionServers[sa.below].PassedEntityChannel,
-		belowConfirm: pss.positionServers[sa.below].PassedEntConfirmations,
-	}
-}
+func getXY(i int, squareRoot int, length int) (xMin int, xMax int, yMin int, yMax int) {
+	i = i + 1
 
-type serverAdjacency struct {
-	serverNumber int
-	left         int
-	right        int
-	above        int
-	below        int
-}
+	/*
+		  Fix this bit
+			var row int
+			if i / squareRoot == squareRoot
+			row := i / squareRoot
+			fmt.Println("row", row)
+	*/
+	row := i / squareRoot
 
-func getAdjacent(serverNumber int, totalServers int, squareRoot int) serverAdjacency {
-	thisServer := serverAdjacency{serverNumber, 0, 0, 0, 0}
-
-	//LEFT
-	if serverNumber%squareRoot == 1 {
-		thisServer.left = serverNumber + (squareRoot - 1)
+	var col int
+	if i%squareRoot == 0 {
+		col = squareRoot - 1
 	} else {
-		thisServer.left = serverNumber - 1
+		col = (i % squareRoot) - 1
 	}
+	fmt.Println("col", col)
 
-	//RIGHT
-	if serverNumber%squareRoot == 0 {
-		thisServer.right = serverNumber - (squareRoot - 1)
-	} else {
-		thisServer.right = serverNumber + 1
-	}
-
-	//above
-	if serverNumber <= squareRoot {
-		thisServer.above = totalServers + (-squareRoot + serverNumber)
-	} else {
-		thisServer.above = serverNumber - squareRoot
-	}
-
-	//BOTTOM
-	if serverNumber > (totalServers - squareRoot) {
-		thisServer.below = serverNumber - (totalServers - squareRoot)
-	} else {
-		thisServer.below = serverNumber + squareRoot
-	}
-
-	return thisServer
+	xMin = col * length
+	xMax = (col + 1) * length
+	yMin = row * length
+	yMax = (row + 1) * length
+	return xMin, xMax, yMin, yMax
 }
 
 func (pss *PositionServerSupervisor) startServers() {
@@ -119,4 +97,66 @@ func (pss *PositionServerSupervisor) startServers() {
 	  - supervise the wait group
 	  - send any newEntity() calls
 	*/
+}
+
+type serverAdjacency struct {
+	left  int
+	right int
+	above int
+	below int
+}
+
+func getAdjacentServerNumbers(serverNumber int, totalServers int, squareRoot int) serverAdjacency {
+	position := serverNumber + 1
+	thisServer := serverAdjacency{}
+
+	//LEFT
+	if position%squareRoot == 1 {
+		thisServer.left = position + (squareRoot - 1)
+	} else {
+		thisServer.left = position - 1
+	}
+
+	//RIGHT
+	if position%squareRoot == 0 {
+		thisServer.right = position - (squareRoot - 1)
+	} else {
+		thisServer.right = position + 1
+	}
+
+	//above
+	if position <= squareRoot {
+		thisServer.above = totalServers + (-squareRoot + position)
+	} else {
+		thisServer.above = position - squareRoot
+	}
+
+	//BOTTOM
+	if position > (totalServers - squareRoot) {
+		thisServer.below = position - (totalServers - squareRoot)
+	} else {
+		thisServer.below = position + squareRoot
+	}
+
+	//Minus 1 from each field to as the position starts at 0
+	thisServer = serverAdjacency{
+		thisServer.left - 1,
+		thisServer.right - 1,
+		thisServer.above - 1,
+		thisServer.below - 1}
+
+	return thisServer
+}
+
+func (pss *PositionServerSupervisor) referenceAdjacentPassedEntityChannels(serverNo int, adjacentServerNumbers serverAdjacency) {
+	pss.positionServers[serverNo].AdjacentPassChannels = AdjacentPassedEntChannels{
+		leftPEChan:   pss.positionServers[adjacentServerNumbers.left].PassedEntityChannel,
+		leftConfirm:  pss.positionServers[adjacentServerNumbers.left].PassedEntConfirmations,
+		rightPEChan:  pss.positionServers[adjacentServerNumbers.right].PassedEntityChannel,
+		rightConfirm: pss.positionServers[adjacentServerNumbers.right].PassedEntConfirmations,
+		abovePEChan:  pss.positionServers[adjacentServerNumbers.above].PassedEntityChannel,
+		aboveConfirm: pss.positionServers[adjacentServerNumbers.above].PassedEntConfirmations,
+		belowPEChan:  pss.positionServers[adjacentServerNumbers.below].PassedEntityChannel,
+		belowConfirm: pss.positionServers[adjacentServerNumbers.below].PassedEntConfirmations,
+	}
 }

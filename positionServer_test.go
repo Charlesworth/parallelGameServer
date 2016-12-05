@@ -122,3 +122,34 @@ func TestPositionServer_intersectsBounds(t *testing.T) {
 		t.Error()
 	}
 }
+
+func TestPositionServer_waitForPassedEntities(t *testing.T) {
+	//No need for error message here, will deadlock and error if fail
+	testServer := newPositionServer(0, 0, 0, 0, "")
+	//expect 4 confirmations on every sever
+	testServer.PassedEntConfirmations <- true
+	testServer.PassedEntConfirmations <- true
+	testServer.PassedEntConfirmations <- true
+	testServer.PassedEntConfirmations <- true
+	if !testServer.waitForPassedEntities() {
+		t.Error()
+	}
+
+	//expect 0 confirmations
+	testServer.PassedEntConfirmations <- false
+	testServer.PassedEntConfirmations <- false
+	testServer.PassedEntConfirmations <- false
+	testServer.PassedEntConfirmations <- false
+	if testServer.waitForPassedEntities() {
+		t.Error()
+	}
+
+	//expect 0 confirmations
+	testServer.PassedEntConfirmations <- false
+	testServer.PassedEntConfirmations <- false
+	testServer.PassedEntConfirmations <- false
+	testServer.PassedEntConfirmations <- true
+	if !testServer.waitForPassedEntities() {
+		t.Error()
+	}
+}
